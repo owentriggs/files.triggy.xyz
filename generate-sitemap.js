@@ -2,8 +2,28 @@ const fs = require('fs');
 const path = require('path');
 
 const BASE_URL = 'https://files.triggy.xyz/'; 
-const IGNORE_FILES = ['generate-sitemap.js', 'package.json', 'index.html', 'README.md'];
+const IGNORE_FILES = ['generate-sitemap.js', 'package.json', 'index.html', 'README.md', 'favicon.ico'];
 const IGNORE_FOLDERS = ['unlisted', 'node_modules'];
+
+// Helper to assign Material Icons based on file extension
+function getFileIcon(filename) {
+    const ext = path.extname(filename).toLowerCase();
+    
+    const iconMap = {
+        // Images
+        '.png': 'image', '.jpg': 'image', '.jpeg': 'image', '.gif': 'image', '.svg': 'image', '.webp': 'image',
+        // Documents
+        '.pdf': 'picture_as_pdf', '.docx': 'description', '.doc': 'description', '.txt': 'article', '.csv': 'table_chart',
+        // Audio
+        '.mp3': 'audio_file', '.wav': 'audio_file', '.ogg': 'audio_file', '.m4a': 'audio_file',
+        // Video
+        '.mp4': 'video_file', '.mov': 'video_file', '.avi': 'video_file', '.mkv': 'video_file',
+        // Archives
+        '.zip': 'folder_zip', '.rar': 'folder_zip', '.7z': 'folder_zip'
+    };
+
+    return iconMap[ext] || 'insert_drive_file'; // Default icon
+}
 
 function getFiles(dir, fileList = []) {
     const files = fs.readdirSync(dir);
@@ -11,7 +31,6 @@ function getFiles(dir, fileList = []) {
         const filePath = path.join(dir, file);
         const relativePath = path.relative('.', filePath);
 
-        // STRICT FILTER: Ignore EVERYTHING starting with a dot
         if (file.startsWith('.') || IGNORE_FILES.includes(file) || IGNORE_FOLDERS.includes(file)) return;
 
         if (fs.statSync(filePath).isDirectory()) {
@@ -25,7 +44,6 @@ function getFiles(dir, fileList = []) {
 
 const allFiles = getFiles('.');
 
-// Grouping logic for the UI
 const structure = {};
 allFiles.forEach(file => {
     const parts = file.split('/');
@@ -33,11 +51,19 @@ allFiles.forEach(file => {
         const folder = parts[0];
         const fileName = parts.slice(1).join('/');
         if (!structure[folder]) structure[folder] = [];
-        structure[folder].push({ name: fileName, url: BASE_URL + file });
+        structure[folder].push({ 
+            name: fileName, 
+            url: BASE_URL + file,
+            icon: getFileIcon(fileName)
+        });
     } else {
-        const rootKey = "Files"; // Renamed "Root" to "Files" for a cleaner look
+        const rootKey = "Files";
         if (!structure[rootKey]) structure[rootKey] = [];
-        structure[rootKey].push({ name: file, url: BASE_URL + file });
+        structure[rootKey].push({ 
+            name: file, 
+            url: BASE_URL + file,
+            icon: getFileIcon(file)
+        });
     }
 });
 
@@ -45,9 +71,13 @@ let htmlContent = '';
 for (const [folder, files] of Object.entries(structure)) {
     htmlContent += `
     <details>
-        <summary>${folder}</summary>
+        <summary><span class="material-symbols-outlined folder-icon">folder</span>${folder}</summary>
         <ul>
-            ${files.map(f => `<li><a href="${f.url}" target="_blank">${f.name}</a></li>`).join('')}
+            ${files.map(f => `
+                <li>
+                    <span class="material-symbols-outlined file-icon">${f.icon}</span>
+                    <a href="${f.url}" target="_blank">${f.name}</a>
+                </li>`).join('')}
         </ul>
     </details>`;
 }
@@ -58,51 +88,60 @@ const html = `<!DOCTYPE html>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File Sharing</title>
-    <!-- The favicon link remains active even though the folder is hidden from the list -->
     <link rel="icon" type="image/svg+xml" href="${BASE_URL}.icons/files-favicon.svg">
     <link href="https://fonts.googleapis.com/css2?family=Michroma&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Material Symbols Outlined -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
     <style>
         body { font-family: 'Inter', sans-serif; margin: 0; background-color: #f8f9fa; color: #333; }
         .top-bar { 
             background-color: #EA4125; 
             color: white; 
-            padding: 1rem 2rem; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1.2rem 2rem; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         }
         .top-bar h1 { 
             font-family: 'Michroma', sans-serif; 
             margin: 0; 
-            font-size: 1.5rem; 
+            font-size: 1.4rem; 
             letter-spacing: 1px;
         }
-        .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+        .container { max-width: 900px; margin: 2.5rem auto; padding: 0 1rem; }
         details { 
             background: white; 
-            margin-bottom: 1rem; 
-            border-radius: 8px; 
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            overflow: hidden;
+            margin-bottom: 0.8rem; 
+            border-radius: 10px; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border: 1px solid #eee;
         }
         summary { 
-            padding: 1rem; 
-            font-weight: 500; 
+            padding: 1.2rem; 
+            font-weight: 600; 
             cursor: pointer; 
-            background: #fff;
-            list-style: none;
             display: flex;
             align-items: center;
+            list-style: none;
         }
         summary::-webkit-details-marker { display: none; }
-        summary::before {
-            content: '📁';
-            margin-right: 12px;
+        .folder-icon { color: #EA4125; margin-right: 12px; font-variation-settings: 'FILL' 1; }
+        
+        details[open] summary { border-bottom: 1px solid #f5f5f5; background: #fafafa; }
+        ul { list-style: none; padding: 0.8rem 1.2rem 1.2rem 1.2rem; margin: 0; }
+        li { 
+            display: flex; 
+            align-items: center; 
+            padding: 0.6rem 0.8rem;
+            transition: background 0.2s;
+            border-radius: 6px;
         }
-        details[open] summary { border-bottom: 1px solid #eee; background: #fafafa; }
-        ul { list-style: none; padding: 0.5rem 1rem 1rem 3.5rem; margin: 0; }
-        li { padding: 0.4rem 0; border-bottom: 1px solid #f1f1f1; }
-        li:last-child { border-bottom: none; }
-        a { color: #EA4125; text-decoration: none; font-size: 0.95rem; }
-        a:hover { text-decoration: underline; }
+        li:hover { background-color: #fff5f4; }
+        .file-icon { 
+            color: #EA4125; 
+            margin-right: 12px; 
+            font-size: 20px;
+        }
+        a { color: #444; text-decoration: none; font-size: 0.95rem; flex-grow: 1; }
+        a:hover { color: #EA4125; text-decoration: underline; }
     </style>
 </head>
 <body>
