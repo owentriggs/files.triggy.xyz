@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Change this to your actual domain
-const BASE_URL = 'https://files.mydomain.com/'; 
+const BASE_URL = 'https://files.triggy.xyz/'; 
 
 const IGNORE_FILES = ['.git', '.github', 'node_modules', 'generate-sitemap.js', 'package.json', 'sitemap.html', '.gitignore'];
 const IGNORE_FOLDERS = ['unlisted', '.github', '.git'];
