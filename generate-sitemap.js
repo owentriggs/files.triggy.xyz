@@ -11,9 +11,8 @@ function getFiles(dir, fileList = []) {
         const filePath = path.join(dir, file);
         const relativePath = path.relative('.', filePath);
 
-        // Allow .icons but ignore other hidden files/folders
-        if (file.startsWith('.') && file !== '.icons') return;
-        if (IGNORE_FILES.includes(file) || IGNORE_FOLDERS.includes(file)) return;
+        // STRICT FILTER: Ignore EVERYTHING starting with a dot
+        if (file.startsWith('.') || IGNORE_FILES.includes(file) || IGNORE_FOLDERS.includes(file)) return;
 
         if (fs.statSync(filePath).isDirectory()) {
             getFiles(filePath, fileList);
@@ -26,7 +25,7 @@ function getFiles(dir, fileList = []) {
 
 const allFiles = getFiles('.');
 
-// Logic to group files by folder for the UI
+// Grouping logic for the UI
 const structure = {};
 allFiles.forEach(file => {
     const parts = file.split('/');
@@ -36,8 +35,9 @@ allFiles.forEach(file => {
         if (!structure[folder]) structure[folder] = [];
         structure[folder].push({ name: fileName, url: BASE_URL + file });
     } else {
-        if (!structure["Root"]) structure["Root"] = [];
-        structure["Root"].push({ name: file, url: BASE_URL + file });
+        const rootKey = "Files"; // Renamed "Root" to "Files" for a cleaner look
+        if (!structure[rootKey]) structure[rootKey] = [];
+        structure[rootKey].push({ name: file, url: BASE_URL + file });
     }
 });
 
@@ -58,7 +58,7 @@ const html = `<!DOCTYPE html>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File Sharing</title>
-    <!-- Favicon Link -->
+    <!-- The favicon link remains active even though the folder is hidden from the list -->
     <link rel="icon" type="image/svg+xml" href="${BASE_URL}.icons/files-favicon.svg">
     <link href="https://fonts.googleapis.com/css2?family=Michroma&family=Inter:wght@400;500&display=swap" rel="stylesheet">
     <style>
